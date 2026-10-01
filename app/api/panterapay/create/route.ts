@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase-server";
 import { createClient as createAdminClient } from "@supabase/supabase-js";
 
-const PANERA_BASE = process.env.PANTERAPAY_API_URL || "https://panterapay-production.up.railway.app";
+const PANTERA_BASE = process.env.PANTERAPAY_API_URL || "https://panterapay-production.up.railway.app";
 
 function admin() {
   return createAdminClient(
@@ -10,6 +10,15 @@ function admin() {
     process.env.SUPABASE_SERVICE_ROLE_KEY!,
     { auth: { autoRefreshToken: false, persistSession: false } }
   );
+}
+
+function providerErrorDetails(body: unknown) {
+  if (!body || typeof body !== "object") return { message: String(body || "Resposta vazia da PanteraPay") };
+  const value = body as Record<string, unknown>;
+  return {
+    message: value.message || value.error || value.detail || value.reason || "A PanteraPay recusou a cobrança.",
+    code: value.code || value.statusCode || value.errorCode || undefined,
+  };
 }
 
 export async function POST(req: Request) {
@@ -36,7 +45,7 @@ export async function POST(req: Request) {
     }
 
     const webhookUrl = `${new URL(req.url).origin}/api/panterapay/webhook`;
-    const response = await fetch(`${PANERA_BASE}/transactions`, {
+    const response = await fetch(`${PANTERA_BASE}/transactions`, {
       method: "POST",
       headers: {
         Authorization: process.env.PANTERAPAY_API_KEY!,
@@ -46,16 +55,45 @@ export async function POST(req: Request) {
       cache: "no-store",
     });
 
-    const provider = await response.json().catch(() => null);
+    const rawBody = await response.text();
+    let provider: Record<string, unknown> | null = null;
+    try {
+      provider = rawBody ? JSON.parse(rawBody) : null;
+    } catch {
+      provider = null;
+    }
+
     if (!response.ok || !provider) {
-      return NextResponse.json({ error: "A PanteraPay não criou a cobrança.", details: provider }, { status: 502 });
+      const details = providerErrorDetails(provider || rawBody);
+      console.error("PanteraPay create failed", {
+        status: response.status,
+        statusText: response.statusText,
+        details,
+        amountCents,
+      });
+
+      return NextResponse.json(
+        {
+          error: "A PanteraPay não criou a cobrança.",
+          providerStatus: response.status,
+          providerMessage: details.message,
+          providerCode: details.code || null,
+        },
+        { status: 502 }
+      );
     }
 
     const providerId = provider.id;
     const qrCode = provider.qrCodeBase64 || provider.qrCode || provider.qr_code || null;
     const copyPaste = provider.copyPaste || provider.copy_paste || provider.pixCode || null;
 
-    if (!providerId) return NextResponse.json({ error: "Resposta da PanteraPay sem ID da transação." }, { status: 502 });
+    if (!providerId) {
+      console.error("PanteraPay response without transaction id", { provider });
+      return NextResponse.json(
+        { error: "Resposta da PanteraPay sem ID da transação.", providerStatus: response.status },
+        { status: 502 }
+      );
+    }
 
     const db = admin();
     const { error: paymentError } = await db.from("panterapay_payments").insert({
@@ -65,13 +103,13 @@ export async function POST(req: Request) {
       amount_cents: amountCents,
       credits: Number(pkg.credits),
       status: "pending",
-      qr_code: qrCode,
-      copy_paste: copyPaste,
+      qr_code: typeof qrCode === "string" ? qrCode : null,
+      copy_paste: typeof copyPaste === "string" ? copyPaste : null,
       expires_at: provider.expiresAt || provider.expires_at || null,
     });
 
     if (paymentError) {
-      console.error(paymentError);
+      console.error("Messagefy payment insert failed", paymentError);
       return NextResponse.json({ error: "Cobrança criada, mas não foi possível registrar o pagamento no Messagefy." }, { status: 500 });
     }
 
@@ -86,7 +124,7 @@ export async function POST(req: Request) {
       status: provider.status || "pending",
     });
   } catch (error) {
-    console.error(error);
+    console.error("PanteraPay create internal error", error);
     return NextResponse.json({ error: "Erro interno ao criar cobrança." }, { status: 500 });
   }
 }
