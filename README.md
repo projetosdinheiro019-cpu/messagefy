@@ -1,26 +1,15 @@
-# Messagefy — redesign visual
+# Messagefy — Redesign premium
 
-Esta versão redesenha a interface do Messagefy com foco em aparência SaaS premium, sem usar imagens geradas.
+Redesign visual completo do Messagefy, mantendo a lógica existente de Supabase, PanteraPay, campanhas, grupos, contatos e carrinho de créditos.
 
-## Principais mudanças
-- Nova identidade visual e logotipo em SVG, integrado diretamente no código.
-- Sidebar e navegação redesenhadas.
-- Topbar com status do sistema e ação de nova campanha.
-- Cards, tabelas, formulários, botões, carrinho e área PIX com novo visual.
-- Login e cadastro redesenhados.
-- Responsividade para desktop e telas menores.
-- Ícones vetoriais inline, sem biblioteca externa e sem imagens.
-- Mantida a integração existente com Supabase e PanteraPay.
-- Mantido o carrinho de créditos.
-- Campanhas continuam usando grupo de destino.
+## Visual
+- Identidade própria Messagefy em SVG (`public/logo.svg`)
+- Interface SaaS premium clara, com azul/índigo
+- Sidebar, topbar, cards, tabelas, formulários, créditos e checkout redesenhados
+- Login e cadastro redesenhados
+- Responsivo
 
-## Pacotes comerciais
-Execute `supabase_credits_cart.sql` no SQL Editor do Supabase para aplicar os pacotes:
-- Inicial — R$ 10,00 — 100 créditos
-- Básico — R$ 19,90 — 250 créditos
-- Profissional — R$ 39,90 — 600 créditos
-- Business — R$ 79,90 — 1.500 créditos
-- Premium — R$ 119,90 — 2.500 créditos
+## Importante
+O código foi redesenhado visualmente sem gerar imagens externas. A marca é um SVG vetorial criado dentro do projeto.
 
-## Deploy
-Não altere as variáveis secretas existentes. Suba o conteúdo deste projeto para o repositório e deixe o Vercel fazer um novo deploy.
+Antes do deploy, rode os SQLs necessários que já acompanham o projeto.

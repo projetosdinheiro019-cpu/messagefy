@@ -42,7 +42,7 @@ export default function Sidebar() {
       <div className="sidebar-bottom">
         <div className="plan-dot" />
         <div className="account-copy"><strong>Workspace</strong><small>Conta Messagefy</small></div>
-        <button aria-label="Sair" className="logout-btn" onClick={async () => { await createClient().auth.signOut(); router.push("/login"); }}>↗</button>
+        <button aria-label="Sair" className="logout-btn" onClick={async () => { await createClient().auth.signOut(); router.push("/login"); }}>⎋</button>
       </div>
     </aside>
   );

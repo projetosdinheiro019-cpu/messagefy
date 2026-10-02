@@ -4,13 +4,20 @@ export default function Brand({ href = "/dashboard", compact = false }: { href?:
   return (
     <Link href={href} className={`brand-lockup ${compact ? "brand-compact" : ""}`} aria-label="Messagefy">
       <span className="brand-symbol" aria-hidden="true">
-        <svg viewBox="0 0 42 42" fill="none">
-          <path d="M8 10.5C8 8.57 9.57 7 11.5 7h19C32.43 7 34 8.57 34 10.5v14c0 1.93-1.57 3.5-3.5 3.5H19l-7.2 6.1c-.75.64-1.9.1-1.8-.88l.45-5.22A3.5 3.5 0 0 1 8 24.5v-14Z" stroke="currentColor" strokeWidth="2.2" strokeLinejoin="round"/>
-          <path d="M14 15h14M14 20h9" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round"/>
-          <path d="M28.8 7.6 35 13.8" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" opacity=".55"/>
+        <svg viewBox="0 0 44 44" fill="none">
+          <defs>
+            <linearGradient id="mf-logo" x1="7" y1="6" x2="37" y2="39" gradientUnits="userSpaceOnUse">
+              <stop stopColor="#5B5CF0"/>
+              <stop offset="1" stopColor="#2F80ED"/>
+            </linearGradient>
+          </defs>
+          <path d="M9 11.5A4.5 4.5 0 0 1 13.5 7h17A4.5 4.5 0 0 1 35 11.5v13A4.5 4.5 0 0 1 30.5 29H20l-7.8 6.4a1.1 1.1 0 0 1-1.8-.85L11 29.1a4.5 4.5 0 0 1-2-3.6v-14Z" fill="url(#mf-logo)"/>
+          <path d="m15 16 5 5 5-5 4 4" stroke="white" strokeWidth="2.25" strokeLinecap="round" strokeLinejoin="round"/>
+          <circle cx="15" cy="16" r="1.4" fill="white"/>
+          <circle cx="25" cy="16" r="1.4" fill="white"/>
         </svg>
       </span>
-      {!compact && <span className="brand-wordmark"><strong>Messagefy</strong><small>COMMUNICATION PLATFORM</small></span>}
+      {!compact && <span className="brand-wordmark"><strong>Messagefy</strong><small>MESSAGING WORKSPACE</small></span>}
     </Link>
   );
 }
