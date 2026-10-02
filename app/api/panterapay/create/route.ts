@@ -27,21 +27,37 @@ export async function POST(req: Request) {
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) return NextResponse.json({ error: "Não autenticado." }, { status: 401 });
 
-    const { packageId } = await req.json();
-    if (!packageId) return NextResponse.json({ error: "Pacote inválido." }, { status: 400 });
+    const body = await req.json();
+    const rawItems = Array.isArray(body?.items) ? body.items : (body?.packageId ? [{ packageId: body.packageId, quantity: 1 }] : []);
+    if (!rawItems.length) return NextResponse.json({ error: "Carrinho vazio." }, { status: 400 });
 
-    const { data: pkg, error: pkgError } = await supabase
+    const normalized = rawItems.map((item: any) => ({
+      packageId: String(item?.packageId || ""),
+      quantity: Math.max(1, Math.floor(Number(item?.quantity || 1))),
+    })).filter((item: any) => item.packageId);
+    if (!normalized.length) return NextResponse.json({ error: "Carrinho inválido." }, { status: 400 });
+
+    const packageIds = [...new Set(normalized.map((item: any) => item.packageId))];
+    const { data: packages, error: packagesError } = await supabase
       .from("credit_packages")
       .select("id,name,credits,price,active")
-      .eq("id", packageId)
-      .eq("active", true)
-      .single();
+      .in("id", packageIds)
+      .eq("active", true);
 
-    if (pkgError || !pkg) return NextResponse.json({ error: "Pacote não encontrado." }, { status: 404 });
+    if (packagesError || !packages || packages.length !== packageIds.length) {
+      return NextResponse.json({ error: "Um ou mais pacotes não foram encontrados." }, { status: 404 });
+    }
 
-    const amountCents = Math.round(Number(pkg.price) * 100);
-    if (!Number.isFinite(amountCents) || amountCents < 50) {
-      return NextResponse.json({ error: "Valor do pacote inválido." }, { status: 400 });
+    const packageMap = new Map(packages.map((pkg: any) => [pkg.id, pkg]));
+    const items = normalized.map((item: any) => {
+      const pkg: any = packageMap.get(item.packageId);
+      return { packageId: pkg.id, name: pkg.name, quantity: item.quantity, credits: Number(pkg.credits), price: Number(pkg.price) };
+    });
+
+    const amountCents = Math.round(items.reduce((sum, item) => sum + item.price * item.quantity, 0) * 100);
+    const totalCredits = items.reduce((sum, item) => sum + item.credits * item.quantity, 0);
+    if (!Number.isFinite(amountCents) || amountCents < 50 || !Number.isFinite(totalCredits) || totalCredits <= 0) {
+      return NextResponse.json({ error: "Valor do carrinho inválido." }, { status: 400 });
     }
 
     const webhookUrl = `${new URL(req.url).origin}/api/panterapay/webhook`;
@@ -98,10 +114,11 @@ export async function POST(req: Request) {
     const db = admin();
     const { error: paymentError } = await db.from("panterapay_payments").insert({
       user_id: user.id,
-      package_id: pkg.id,
+      package_id: items.length === 1 ? items[0].packageId : null,
       provider_transaction_id: providerId,
       amount_cents: amountCents,
-      credits: Number(pkg.credits),
+      credits: totalCredits,
+      items,
       status: "pending",
       qr_code: typeof qrCode === "string" ? qrCode : null,
       copy_paste: typeof copyPaste === "string" ? copyPaste : null,
@@ -115,9 +132,10 @@ export async function POST(req: Request) {
 
     return NextResponse.json({
       paymentId: providerId,
-      amount: Number(pkg.price),
-      packageName: pkg.name,
-      credits: Number(pkg.credits),
+      amount: amountCents / 100,
+      packageName: items.length === 1 ? items[0].name : "Carrinho",
+      credits: totalCredits,
+      items,
       qrCode,
       copyPaste,
       expiresAt: provider.expiresAt || provider.expires_at || null,
