@@ -54,8 +54,8 @@ export async function POST(req: Request) {
       return { packageId: pkg.id, name: pkg.name, quantity: item.quantity, credits: Number(pkg.credits), price: Number(pkg.price) };
     });
 
-    const amountCents = Math.round(items.reduce((sum, item) => sum + item.price * item.quantity, 0) * 100);
-    const totalCredits = items.reduce((sum, item) => sum + item.credits * item.quantity, 0);
+    const amountCents = Math.round(items.reduce((sum: number, item: { price: number; quantity: number }) => sum + item.price * item.quantity, 0) * 100);
+    const totalCredits = items.reduce((sum: number, item: { credits: number; quantity: number }) => sum + item.credits * item.quantity, 0);
     if (!Number.isFinite(amountCents) || amountCents < 50 || !Number.isFinite(totalCredits) || totalCredits <= 0) {
       return NextResponse.json({ error: "Valor do carrinho inválido." }, { status: 400 });
     }
