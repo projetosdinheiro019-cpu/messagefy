@@ -11,7 +11,7 @@ export default async function Page() {
       <div className="hero"><div><h1>Créditos</h1><p>Compre saldo e use nos seus futuros disparos.</p></div></div>
       <div className="balance">
         <div><small>Saldo disponível</small><strong>{c?.balance ?? 0} créditos</strong></div>
-        <span className="muted">Pagamento via PIX</span>
+        <span className="status-chip"><span /> PIX disponível</span>
       </div>
       <CreditsShop packages={(p || []) as any} />
     </section>
